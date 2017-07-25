@@ -7,35 +7,29 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ServerManager {
 
-	private static ServerManager instance;
-
 	private static final int port = 23452;
 
-	private List<ClientConnection> activeConnections = Collections.synchronizedList(new LinkedList<ClientConnection>());
+	private List<ClientConnection> activeConnections;
 	private Logger logger;
 	private KeyPair keyPair;
 
-	public static ServerManager getInstance() {
-		if (instance == null) {
-			instance = new ServerManager();
-		}
-		return instance;
+	public Logger getLogger() {
+		return logger;
 	}
 
-	private ServerManager() {
-		logger = LogManager.getLogger("Main");
+	public ServerManager(Logger logger) {
+		this.logger = logger;
+		activeConnections = new LinkedList<ClientConnection>();
 		genServerKeys();
 		ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
 		exec.scheduleAtFixedRate(new LocationSendingRunnable(), 1, 1, TimeUnit.SECONDS);
@@ -58,10 +52,10 @@ public class ServerManager {
 			try {
 				Socket client = server.accept();
 				ClientConnection conn = new ClientConnection(client, logger, keyPair);
-				if (conn.isActive()) {
+				synchronized (activeConnections) {
 					activeConnections.add(conn);
-					new Thread(conn).start();
 				}
+				new Thread(conn).start();
 			} catch (IOException e) {
 				logger.error("Error occured while accepting client connection", e);
 			}
@@ -72,12 +66,18 @@ public class ServerManager {
 		// filter out dead ones
 		synchronized (activeConnections) {
 			Iterator<ClientConnection> iter = activeConnections.iterator();
+			List<ClientConnection> conns = new LinkedList<ClientConnection>();
 			while (iter.hasNext()) {
-				if (!iter.next().isActive()) {
+				ClientConnection conn = iter.next();
+				if (!conn.isActive()) {
 					iter.remove();
+					continue;
+				}
+				if (conn.isInitialized()) {
+					conns.add(conn);
 				}
 			}
-			return new LinkedList<ClientConnection>(activeConnections);
+			return conns;
 		}
 	}
 

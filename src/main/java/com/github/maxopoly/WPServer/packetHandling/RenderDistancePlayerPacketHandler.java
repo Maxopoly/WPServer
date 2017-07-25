@@ -5,11 +5,11 @@ import com.github.maxopoly.WPCommon.model.LocationTracker;
 import com.github.maxopoly.WPCommon.packetHandling.AbstractPacketHandler;
 import org.json.JSONObject;
 
-public class LocationReportHandler extends AbstractPacketHandler {
+public class RenderDistancePlayerPacketHandler extends AbstractPacketHandler {
 
 	private LocationTracker tracker;
 
-	public LocationReportHandler(LocationTracker tracker) {
+	public RenderDistancePlayerPacketHandler(LocationTracker tracker) {
 		super("nearbyPlayers");
 		this.tracker = tracker;
 	}

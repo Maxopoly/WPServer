@@ -7,19 +7,18 @@ import org.apache.logging.log4j.Logger;
 
 public class ServerSidePacketHandler extends PacketForwarder {
 
-	private ClientConnection conn;
-
 	public ServerSidePacketHandler(ClientConnection conn, Logger logger) {
 		super(logger);
-		this.conn = conn;
 		// needs to be here, because it needs the connection object, fuck the pattern
-		registerPacketHandler(new RequestPlayerInfoHandler(conn));
+		registerPacketHandler(new RequestPlayerInfoPacketHandler(conn));
+		registerPacketHandler(new ItemLocationRequestPacketHandler(conn));
 	}
 
 	@Override
 	protected void registerHandler() {
-		registerPacketHandler(new LocationReportHandler(LocationTracker.getInstance()));
-		registerPacketHandler(new SnitchHitHandler(LocationTracker.getInstance()));
+		registerPacketHandler(new RenderDistancePlayerPacketHandler(LocationTracker.getInstance()));
+		registerPacketHandler(new SnitchHitPacketHandler(LocationTracker.getInstance()));
+		registerPacketHandler(new ChestContentPacketHandler());
 	}
 
 }

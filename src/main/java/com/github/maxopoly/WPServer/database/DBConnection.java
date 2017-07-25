@@ -16,7 +16,13 @@ public class DBConnection {
 			int poolSize, long connectionTimeout, long idleTimeout, long maxLifetime) {
 		this.logger = logger;
 		HikariConfig config = new HikariConfig();
-		config.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database);
+		try {
+			Class.forName("org.mariadb.jdbc.MySQLDataSource");
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		config.setJdbcUrl("jdbc:mariadb://" + host + ":" + port + "/" + database);
 		config.setConnectionTimeout(connectionTimeout);
 		config.setIdleTimeout(idleTimeout);
 		config.setMaxLifetime(maxLifetime);

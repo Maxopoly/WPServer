@@ -8,7 +8,7 @@ public class LocationSendingRunnable implements Runnable {
 
 	@Override
 	public void run() {
-		List<ClientConnection> conns = ServerManager.getInstance().getActiveConnections();
+		List<ClientConnection> conns = Main.getServerManager().getActiveConnections();
 		LocationTracker tracker = LocationTracker.getInstance();
 		List<String> pendingUpdates = tracker.pullAndClearRecentlyUpdatedPlayers();
 		if (pendingUpdates.size() == 0) {
@@ -16,7 +16,7 @@ public class LocationSendingRunnable implements Runnable {
 		}
 		PlayerLocationUpdate updatePacket = new PlayerLocationUpdate(pendingUpdates);
 		for (ClientConnection conn : conns) {
-			conn.sendData(updatePacket.getMessage());
+			conn.sendData(updatePacket);
 		}
 	}
 }

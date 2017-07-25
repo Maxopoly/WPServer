@@ -7,11 +7,11 @@ import com.github.maxopoly.WPCommon.model.LocationTracker;
 import com.github.maxopoly.WPCommon.model.SnitchHitAction;
 import org.json.JSONObject;
 
-public class SnitchHitHandler extends AbstractPacketHandler {
+public class SnitchHitPacketHandler extends AbstractPacketHandler {
 
 	private LocationTracker tracker;
 
-	public SnitchHitHandler(LocationTracker tracker) {
+	public SnitchHitPacketHandler(LocationTracker tracker) {
 		super("snitchhit");
 		this.tracker = tracker;
 	}

@@ -7,21 +7,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import org.apache.logging.log4j.Logger;
 
 public class AltDAO {
-
-	// singleton
-	private static AltDAO instance;
-
-	public static AltDAO getInstance() {
-		if (instance == null) {
-			instance = new AltDAO();
-		}
-		return instance;
-	}
 
 	private static final String createAccountTable = "create table if not exists accounts(id int not null auto_increment, name varchar(16) not null, "
 			+ "altGroupId int not null, primary key (id), unique key uniqueName (name));";
@@ -34,11 +26,20 @@ public class AltDAO {
 	private static final String getAlts = "select a2.id, a2.name,a2.altGroupId from accounts a1 inner join accounts a2 on a1.altGroupId = a2.altGroupId where a1.name = ?;";
 	private static final String getMainInfo = "select m.id, m.standing, m.faction_id, f.name, f.standing from mains m inner join factions f on m.faction_id=f.id where altGroupId = ?;";
 
+	private static final String getAllFactions = "select id,name,standing from factions";
+	private static final String getAllMains = "select m.id, m.altGroupId, m.standing, m.faction_id, a.name from mains m inner join accounts a on m.id = a.id;";
+	private static final String getAllALts = "select a.id, a.altGroupId, a.name from accounts a left join mains m on a.id = m.id where m.id is null;  ";
+
 	private DBConnection connection;
 	private Logger logger;
 
-	private AltDAO() {
-		createTables();
+	public AltDAO(DBConnection connection, Logger logger) {
+		this.logger = logger;
+		this.connection = connection;
+		if (!createTables()) {
+			logger.error("Failed to init alt DB, shutting down");
+			System.exit(1);
+		}
 	}
 
 	private boolean createTables() {
@@ -69,7 +70,6 @@ public class AltDAO {
 
 	public Player getPlayerInfo(String altName) {
 		List<MCAccount> alts = new LinkedList<MCAccount>();
-		List<String> altNames = new LinkedList<String>();
 		int altGroup = -1;
 		try (Connection conn = connection.getConnection(); PreparedStatement prep = conn.prepareStatement(getAlts)) {
 			prep.setString(1, altName);
@@ -80,7 +80,6 @@ public class AltDAO {
 					altGroup = rs.getInt(3);
 					MCAccount acc = new MCAccount(name);
 					alts.add(acc);
-					altNames.add(name);
 				}
 			}
 		} catch (SQLException e) {
@@ -111,7 +110,7 @@ public class AltDAO {
 						return null;
 					}
 					Faction f = new Faction(factionName, factionStanding);
-					return new Player(f, altNames, main.getName(), standing);
+					return new Player(f, alts, main, standing);
 				} else {
 					logger.error("Failed to find main for " + altName + ". Inconsistent db scheme?");
 					return null;
@@ -121,5 +120,71 @@ public class AltDAO {
 			logger.error("Failed to retrieve alts for " + altName, e);
 			return null;
 		}
+	}
+
+	public Map[] loadAll() {
+		Map[] result = new Map[2];
+		Map<String, Player> players = new HashMap<String, Player>();
+		Map<String, Faction> factions = new HashMap<String, Faction>();
+		Map<Integer, Faction> factionsById = new HashMap<Integer, Faction>();
+		Map<Integer, Player> playersById = new HashMap<Integer, Player>();
+		result[0] = players;
+		result[1] = factions;
+		try (Connection conn = connection.getConnection();
+				PreparedStatement prep = conn.prepareStatement(getAllFactions);
+				ResultSet rs = prep.executeQuery()) {
+			while (rs.next()) {
+				int factionID = rs.getInt(1);
+				String factionName = rs.getString(2);
+				int factionStanding = rs.getInt(3);
+				Faction f = new Faction(factionID, factionName, factionStanding);
+				factions.put(f.getName().toLowerCase(), f);
+				factionsById.put(f.getID(), f);
+			}
+		} catch (SQLException e) {
+			logger.error("Failed to retrieve all factions", e);
+			return null;
+		}
+		logger.info("Loaded " + factions.size() + " factions from DB");
+		try (Connection conn = connection.getConnection();
+				PreparedStatement prep = conn.prepareStatement(getAllMains);
+				ResultSet rs = prep.executeQuery()) {
+			while (rs.next()) {
+				int accID = rs.getInt(1);
+				int altID = rs.getInt(2);
+				int standing = rs.getInt(3);
+				int factionID = rs.getInt(4);
+				String name = rs.getString(5);
+				List<MCAccount> accounts = new LinkedList<MCAccount>();
+				MCAccount main = new MCAccount(accID, name);
+				accounts.add(main);
+				Faction fac = factionsById.get(factionID);
+				Player player = new Player(fac, accounts, main, standing, altID);
+				playersById.put(altID, player);
+				players.put(name.toLowerCase(), player);
+			}
+		} catch (SQLException e) {
+			logger.error("Failed to retrieve all factions", e);
+			return null;
+		}
+		logger.info("Loaded " + players.size() + " unique players from DB");
+		try (Connection conn = connection.getConnection();
+				PreparedStatement prep = conn.prepareStatement(getAllALts);
+				ResultSet rs = prep.executeQuery()) {
+			while (rs.next()) {
+				int accID = rs.getInt(1);
+				int altID = rs.getInt(2);
+				String name = rs.getString(3);
+				MCAccount alt = new MCAccount(accID, name);
+				Player main = playersById.get(altID);
+				main.addAlt(alt);
+				players.put(name.toLowerCase(), main);
+			}
+		} catch (SQLException e) {
+			logger.error("Failed to retrieve all factions", e);
+			return null;
+		}
+		logger.info("Loaded " + players.size() + " total MC accounts from DB");
+		return result;
 	}
 }
