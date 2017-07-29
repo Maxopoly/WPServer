@@ -14,6 +14,5 @@ public class ChestContentPacketHandler extends AbstractPacketHandler {
 	@Override
 	public void handle(JSONObject msg) {
 		ChestManagement.getInstance().updateContent(new Chest(msg.getJSONObject("chest")));
-
 	}
 }

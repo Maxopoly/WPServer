@@ -2,6 +2,7 @@ package com.github.maxopoly.WPServer.model;
 
 import com.github.maxopoly.WPCommon.model.Chest;
 import com.github.maxopoly.WPCommon.model.Location;
+import com.github.maxopoly.WPCommon.model.WPItem;
 import com.github.maxopoly.WPServer.Main;
 import java.io.BufferedReader;
 import java.io.File;
@@ -15,9 +16,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -40,11 +39,11 @@ public class ChestManagement {
 	private static final String backupFilePath = "chestsBackup.json";
 	private static final int saveIntervall = 120;
 
-	private Map<Integer, Set<Chest>> items;
+	private Map<WPItem, Set<Chest>> items;
 	private Map<Location, Chest> chests;
 
 	private ChestManagement() {
-		this.items = new TreeMap<Integer, Set<Chest>>();
+		this.items = new HashMap<WPItem, Set<Chest>>();
 		this.chests = new HashMap<Location, Chest>();
 		ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
 		exec.scheduleAtFixedRate(new Runnable() {
@@ -65,18 +64,18 @@ public class ChestManagement {
 			preExisting = chest;
 		}
 		preExisting.setContent(chest.getContent());
-		for (Entry<Integer, Integer> entry : chest.getContent().entrySet()) {
-			Set<Chest> chests = items.get(entry.getKey());
+		for (WPItem item : chest.getContent()) {
+			Set<Chest> chests = items.get(item);
 			if (chests == null) {
 				chests = new HashSet<Chest>();
-				items.put(entry.getKey(), chests);
+				items.put(item, chests);
 			}
 			chests.add(preExisting);
 		}
 	}
 
-	public synchronized List<Chest> getChestsForItem(int id) {
-		Set<Chest> unfiltered = items.get(id);
+	public synchronized List<Chest> getChestsForItem(WPItem item) {
+		Set<Chest> unfiltered = items.get(item);
 		if (unfiltered == null) {
 			return new LinkedList<Chest>();
 		}
@@ -84,11 +83,33 @@ public class ChestManagement {
 		Iterator<Chest> iter = copy.iterator();
 		while (iter.hasNext()) {
 			Chest chest = iter.next();
-			if (chest.getAmount(id) == 0) {
+			if (chest.getAmount(item) == 0) {
 				iter.remove();
 			}
 		}
 		return copy;
+	}
+
+	public synchronized Map<Chest, List<WPItem>> getChestsForSimilarItems(WPItem inputItem) {
+		Map<Chest, List<WPItem>> locs = new HashMap<Chest, List<WPItem>>();
+		WPItem[] toLookUp = new WPItem[] { new WPItem(inputItem.getID(), 1, inputItem.getDurability(), false, false),
+				new WPItem(inputItem.getID(), 1, inputItem.getDurability(), true, false),
+				new WPItem(inputItem.getID(), 1, inputItem.getDurability(), false, true) };
+		for (WPItem item : toLookUp) {
+			List<Chest> chests = getChestsForItem(item);
+			if (chests.size() == 0) {
+				continue;
+			}
+			for (Chest chest : chests) {
+				List<WPItem> itemList = locs.get(chest);
+				if (itemList == null) {
+					itemList = new LinkedList<WPItem>();
+					locs.put(chest, itemList);
+				}
+				itemList.add(item);
+			}
+		}
+		return locs;
 	}
 
 	public synchronized void loadFromFile() {
