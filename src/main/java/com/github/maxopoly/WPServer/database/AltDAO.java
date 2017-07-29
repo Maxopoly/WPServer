@@ -20,14 +20,14 @@ public class AltDAO {
 	private static final String createFactionTable = "create table if not exists factions(id int not null auto_increment, name varchar(255) not null, "
 			+ "standing int not null default '0', primary key (id), unique key uniqueName (name));";
 	private static final String createMainTable = "create table if not exists mains(id int not null, altGroupId int not null, standing int not null "
-			+ "default '0', faction_id int, primary key (altGroupId), constraint mainKey foreign key (id) references accounts(id) on delete cascade "
+			+ "default '0', faction_id int, pos boolean not null default false, primary key (altGroupId), constraint mainKey foreign key (id) references accounts(id) on delete cascade "
 			+ "on update no action, constraint factionKey foreign key (faction_id) references factions(id) on delete set null  on update no action);";
 
 	private static final String getAlts = "select a2.id, a2.name,a2.altGroupId from accounts a1 inner join accounts a2 on a1.altGroupId = a2.altGroupId where a1.name = ?;";
-	private static final String getMainInfo = "select m.id, m.standing, m.faction_id, f.name, f.standing from mains m inner join factions f on m.faction_id=f.id where altGroupId = ?;";
+	private static final String getMainInfo = "select m.id, m.standing, m.faction_id, f.name, f.standing, m.pos from mains m inner join factions f on m.faction_id=f.id where altGroupId = ?;";
 
 	private static final String getAllFactions = "select id,name,standing from factions";
-	private static final String getAllMains = "select m.id, m.altGroupId, m.standing, m.faction_id, a.name from mains m inner join accounts a on m.id = a.id;";
+	private static final String getAllMains = "select m.id, m.altGroupId, m.standing, m.faction_id, a.name, m.pos from mains m inner join accounts a on m.id = a.id;";
 	private static final String getAllALts = "select a.id, a.altGroupId, a.name from accounts a left join mains m on a.id = m.id where m.id is null;  ";
 
 	private DBConnection connection;
@@ -71,6 +71,7 @@ public class AltDAO {
 	public Player getPlayerInfo(String altName) {
 		List<MCAccount> alts = new LinkedList<MCAccount>();
 		int altGroup = -1;
+		boolean pos;
 		try (Connection conn = connection.getConnection(); PreparedStatement prep = conn.prepareStatement(getAlts)) {
 			prep.setString(1, altName);
 			try (ResultSet rs = prep.executeQuery()) {
@@ -99,6 +100,7 @@ public class AltDAO {
 					int factionID = rs.getInt(3);
 					String factionName = rs.getString(4);
 					int factionStanding = rs.getInt(5);
+					pos = rs.getBoolean(6);
 					MCAccount main = null;
 					for (MCAccount curr : alts) {
 						if (curr.getID() == mainID) {
@@ -110,7 +112,7 @@ public class AltDAO {
 						return null;
 					}
 					Faction f = new Faction(factionName, factionStanding);
-					return new Player(f, alts, main, standing);
+					return new Player(f, alts, main, standing, pos);
 				} else {
 					logger.error("Failed to find main for " + altName + ". Inconsistent db scheme?");
 					return null;
@@ -155,11 +157,12 @@ public class AltDAO {
 				int standing = rs.getInt(3);
 				int factionID = rs.getInt(4);
 				String name = rs.getString(5);
+				boolean pos = rs.getBoolean(6);
 				List<MCAccount> accounts = new LinkedList<MCAccount>();
 				MCAccount main = new MCAccount(accID, name);
 				accounts.add(main);
 				Faction fac = factionsById.get(factionID);
-				Player player = new Player(fac, accounts, main, standing, altID);
+				Player player = new Player(fac, accounts, main, standing, altID, pos);
 				playersById.put(altID, player);
 				players.put(name.toLowerCase(), player);
 			}
