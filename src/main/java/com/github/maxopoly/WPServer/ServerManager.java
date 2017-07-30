@@ -32,7 +32,7 @@ public class ServerManager {
 		activeConnections = new LinkedList<ClientConnection>();
 		genServerKeys();
 		ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
-		exec.scheduleAtFixedRate(new LocationSendingRunnable(), 1, 1, TimeUnit.SECONDS);
+		exec.scheduleAtFixedRate(new LocationSendingRunnable(), 1, 500, TimeUnit.MILLISECONDS);
 	}
 
 	@SuppressWarnings("resource")

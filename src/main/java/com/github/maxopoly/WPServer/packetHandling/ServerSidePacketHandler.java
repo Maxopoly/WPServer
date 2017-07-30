@@ -16,8 +16,7 @@ public class ServerSidePacketHandler extends PacketForwarder {
 
 	@Override
 	protected void registerHandler() {
-		registerPacketHandler(new RenderDistancePlayerPacketHandler(LocationTracker.getInstance()));
-		registerPacketHandler(new SnitchHitPacketHandler(LocationTracker.getInstance()));
+		registerPacketHandler(new PlayerLocationPacketHandler(LocationTracker.getInstance()));
 		registerPacketHandler(new ChestContentPacketHandler());
 	}
 

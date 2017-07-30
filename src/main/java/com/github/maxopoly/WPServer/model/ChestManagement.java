@@ -65,6 +65,9 @@ public class ChestManagement {
 		}
 		preExisting.setContent(chest.getContent());
 		for (WPItem item : chest.getContent()) {
+			if (item.isRepairable()) {
+				item.setDurability(0);
+			}
 			Set<Chest> chests = items.get(item);
 			if (chests == null) {
 				chests = new HashSet<Chest>();
@@ -74,7 +77,7 @@ public class ChestManagement {
 		}
 	}
 
-	public synchronized List<Chest> getChestsForItem(WPItem item) {
+	private synchronized List<Chest> getChestsForItem(WPItem item) {
 		Set<Chest> unfiltered = items.get(item);
 		if (unfiltered == null) {
 			return new LinkedList<Chest>();
@@ -92,6 +95,9 @@ public class ChestManagement {
 
 	public synchronized Map<Chest, List<WPItem>> getChestsForSimilarItems(WPItem inputItem) {
 		Map<Chest, List<WPItem>> locs = new HashMap<Chest, List<WPItem>>();
+		if (inputItem.isRepairable()) {
+			inputItem.setDurability(0);
+		}
 		WPItem[] toLookUp = new WPItem[] { new WPItem(inputItem.getID(), 1, inputItem.getDurability(), false, false),
 				new WPItem(inputItem.getID(), 1, inputItem.getDurability(), true, false),
 				new WPItem(inputItem.getID(), 1, inputItem.getDurability(), false, true) };
@@ -106,7 +112,8 @@ public class ChestManagement {
 					itemList = new LinkedList<WPItem>();
 					locs.put(chest, itemList);
 				}
-				itemList.add(item);
+				itemList.add(new WPItem(item.getID(), chest.getAmount(item), item.getDurability(), item.isCompacted(), item
+						.isEnchanted()));
 			}
 		}
 		return locs;
