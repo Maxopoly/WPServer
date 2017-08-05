@@ -1,6 +1,7 @@
 package com.github.maxopoly.WPServer.model;
 
-import com.github.maxopoly.WPCommon.model.Permission;
+import com.github.maxopoly.WPCommon.model.permission.Permission;
+
 import com.github.maxopoly.WPServer.database.AuthDAO;
 import java.util.Map;
 

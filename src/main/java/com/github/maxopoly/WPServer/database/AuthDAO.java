@@ -1,6 +1,7 @@
 package com.github.maxopoly.WPServer.database;
 
-import com.github.maxopoly.WPCommon.model.Permission;
+import com.github.maxopoly.WPCommon.model.permission.Permission;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

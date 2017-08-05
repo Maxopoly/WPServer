@@ -3,9 +3,9 @@ package com.github.maxopoly.WPServer.command.commands;
 import com.github.maxopoly.WPServer.command.Command;
 import com.github.maxopoly.WPServer.model.ChestManagement;
 
-public class Stop extends Command {
+public class StopCommand extends Command {
 
-	public Stop() {
+	public StopCommand() {
 		super("exit", 0, 0, "stop", "end", "close");
 	}
 

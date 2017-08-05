@@ -1,7 +1,9 @@
 package com.github.maxopoly.WPServer.command;
 
-import com.github.maxopoly.WPServer.command.commands.Reload;
-import com.github.maxopoly.WPServer.command.commands.Stop;
+import com.github.maxopoly.WPServer.command.commands.CrashCommand;
+import com.github.maxopoly.WPServer.command.commands.ListCommand;
+import com.github.maxopoly.WPServer.command.commands.ReloadCommand;
+import com.github.maxopoly.WPServer.command.commands.StopCommand;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -23,8 +25,10 @@ public class CommandHandler {
 	 * Registers all native commands
 	 */
 	private synchronized void registerCommands() {
-		registerCommand(new Stop());
-		registerCommand(new Reload());
+		registerCommand(new StopCommand());
+		registerCommand(new ReloadCommand());
+		registerCommand(new CrashCommand());
+		registerCommand(new ListCommand());
 		logger.info("Loaded total of " + commands.values().size() + " commands");
 	}
 
