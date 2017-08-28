@@ -10,10 +10,6 @@ import com.github.maxopoly.WPServer.model.PlayerInfoManagement;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-/**
- * Hello world!
- *
- */
 public class Main {
 
 	private static PlayerInfoManagement accountCache;
@@ -25,8 +21,8 @@ public class Main {
 	public static void main(String[] args) {
 		logger = LogManager.getLogger("Main");
 		try {
-			dbConnection = new DBConnection(logger, args[0], args[1], args[2], Integer.parseInt(args[3]), args[4], 5, 10000,
-					600000, 1800000);
+			dbConnection = new DBConnection(logger, args[0], args[1], args[2], Integer.parseInt(args[3]), args[4], 5,
+					10000, 600000, 1800000);
 		} catch (NumberFormatException e) {
 			logger.error("Given port " + args[3] + " is not a number");
 			System.exit(1);
@@ -39,6 +35,8 @@ public class Main {
 		startCmdReading();
 		// force loading from save file
 		ChestManagement.getInstance();
+		// force creation of hash cache
+		new MapDataSyncSession(null, 0);
 		serverManager.startServer();
 	}
 

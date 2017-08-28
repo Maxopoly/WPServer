@@ -27,6 +27,7 @@ import org.json.JSONObject;
 public class ChestManagement {
 
 	private static ChestManagement instance;
+	private boolean dirty;
 
 	public static ChestManagement getInstance() {
 		if (instance == null) {
@@ -55,9 +56,11 @@ public class ChestManagement {
 			}
 		}, saveIntervall, saveIntervall, TimeUnit.SECONDS);
 		loadFromFile();
+		dirty = false;
 	}
 
 	public synchronized void updateContent(Chest chest) {
+		dirty = true;
 		Chest preExisting = chests.get(chest.getLocation());
 		if (preExisting == null) {
 			chests.put(chest.getLocation(), chest);
@@ -112,8 +115,8 @@ public class ChestManagement {
 					itemList = new LinkedList<WPItem>();
 					locs.put(chest, itemList);
 				}
-				itemList.add(new WPItem(item.getID(), chest.getAmount(item), item.getDurability(), item.isCompacted(), item
-						.isEnchanted()));
+				itemList.add(new WPItem(item.getID(), chest.getAmount(item), item.getDurability(), item.isCompacted(),
+						item.isEnchanted()));
 			}
 		}
 		return locs;
@@ -147,6 +150,9 @@ public class ChestManagement {
 	}
 
 	public synchronized void saveToFile() {
+		if (!dirty) {
+			return;
+		}
 		File saveFile = new File(saveFilePath);
 		File backUpFile = new File(backupFilePath);
 		if (saveFile.exists() && backUpFile.exists()) {
@@ -166,6 +172,8 @@ public class ChestManagement {
 			Main.getLogger().error("Failed to save chest content to save file", e);
 			return;
 		}
-		Main.getLogger().info("Successfully saved chest content to save file");
+		Main.getLogger().info(
+				"Successfully saved chest content to save file, total of " + chests.size() + " chests tracked");
+		dirty = false;
 	}
 }

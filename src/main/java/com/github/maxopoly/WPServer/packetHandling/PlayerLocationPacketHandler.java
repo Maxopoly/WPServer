@@ -2,16 +2,16 @@ package com.github.maxopoly.WPServer.packetHandling;
 
 import com.github.maxopoly.WPCommon.model.LocationTracker;
 import com.github.maxopoly.WPCommon.model.LoggedPlayerLocation;
-import com.github.maxopoly.WPCommon.packetHandling.AbstractPacketHandler;
+import com.github.maxopoly.WPCommon.packetHandling.PacketIndex;
+import com.github.maxopoly.WPCommon.packetHandling.incoming.JSONPacketHandler;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-public class PlayerLocationPacketHandler extends AbstractPacketHandler {
+public class PlayerLocationPacketHandler implements JSONPacketHandler {
 
 	private LocationTracker tracker;
 
 	public PlayerLocationPacketHandler(LocationTracker tracker) {
-		super("nearbyPlayers");
 		this.tracker = tracker;
 	}
 
@@ -22,6 +22,11 @@ public class PlayerLocationPacketHandler extends AbstractPacketHandler {
 			LoggedPlayerLocation playerLoc = new LoggedPlayerLocation(arr.getJSONObject(i));
 			tracker.reportLocation(playerLoc);
 		}
+	}
+
+	@Override
+	public PacketIndex getPacketToHandle() {
+		return PacketIndex.PlayerLocationPull;
 	}
 
 }

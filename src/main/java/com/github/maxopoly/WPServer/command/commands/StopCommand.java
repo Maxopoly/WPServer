@@ -1,5 +1,6 @@
 package com.github.maxopoly.WPServer.command.commands;
 
+import com.github.maxopoly.WPServer.MapDataSyncSession;
 import com.github.maxopoly.WPServer.command.Command;
 import com.github.maxopoly.WPServer.model.ChestManagement;
 
@@ -12,6 +13,7 @@ public class StopCommand extends Command {
 	@Override
 	public void execute(String[] args) {
 		ChestManagement.getInstance().saveToFile();
+		MapDataSyncSession.saveCachedHashes();
 		System.exit(0);
 	}
 

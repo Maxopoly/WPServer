@@ -1,18 +1,15 @@
 package com.github.maxopoly.WPServer;
 
-import com.github.maxopoly.WPCommon.packetHandling.AbstractJsonPacket;
-import com.github.maxopoly.WPCommon.packetHandling.PacketForwarder;
+import com.github.maxopoly.WPCommon.packetHandling.outgoing.IPacket;
+import com.github.maxopoly.WPCommon.packetHandling.outgoing.OutgoingDataHandler;
 import com.github.maxopoly.WPCommon.util.AES_CFB8_Encrypter;
-import com.github.maxopoly.WPCommon.util.CompressionManager;
 import com.github.maxopoly.WPCommon.util.ConnectionUtils;
 import com.github.maxopoly.WPCommon.util.PKCSEncrypter;
 import com.github.maxopoly.WPCommon.util.VarInt;
-import com.github.maxopoly.WPServer.packetHandling.ServerSidePacketHandler;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.security.KeyPair;
 import java.security.SecureRandom;
 import org.apache.logging.log4j.Logger;
@@ -27,12 +24,14 @@ public class ClientConnection implements Runnable {
 	private Socket socket;
 	private Logger logger;
 	private boolean active;
-	private PacketForwarder forwarder;
+	private ServerSidePacketHandler packetHandler;
+	private OutgoingDataHandler outgoingDataHandler;
 	private KeyPair keyPair;
 	private AES_CFB8_Encrypter encrypter;
 	private byte[] sharedSecret;
 	private boolean initialized;
 	private String identifier;
+	private MapDataSyncSession mapSyncSession;
 
 	public ClientConnection(Socket socket, Logger logger, KeyPair keyPair) {
 		logger.info("Connection attempt by " + socket.getInetAddress().getHostAddress());
@@ -47,7 +46,6 @@ public class ClientConnection implements Runnable {
 			logger.error("Failed to init connection with client", e);
 			return;
 		}
-		this.forwarder = new ServerSidePacketHandler(this, logger);
 	}
 
 	public boolean isInitialized() {
@@ -57,12 +55,21 @@ public class ClientConnection implements Runnable {
 	private void setup() {
 		active = true;
 		identifier = socket.getInetAddress().getHostAddress();
-		if (!(figureOutEncryption() && authPlayer())) {
+		if (!figureOutEncryption()) {
 			close();
 			return;
 		}
+		Runnable closingCallBack = new Runnable() {
+
+			@Override
+			public void run() {
+				close();
+				logger.error("IOError, killing connection with " + identifier);
+			}
+		};
+		outgoingDataHandler = new OutgoingDataHandler(output, encrypter, closingCallBack);
+		packetHandler = new ServerSidePacketHandler(logger, input, encrypter, closingCallBack, this);
 		initialized = true;
-		logger.info("Successfully established connection with " + identifier);
 	}
 
 	public boolean isActive() {
@@ -78,59 +85,25 @@ public class ClientConnection implements Runnable {
 		if (!initialized) {
 			setup();
 		}
-		while (active) {
-			JSONObject packet = readPacket();
-			if (packet == null) {
-				break;
-			}
-			forwarder.handlePacket(packet);
-		}
-		close();
-	}
-
-	private JSONObject readPacket() {
-		try {
-			int packetLength = VarInt.readVarInt(input, encrypter);
-			byte[] dataArray = new byte[packetLength];
-			input.readFully(dataArray);
-			byte[] decryptedData = encrypter.decrypt(dataArray);
-			byte[] decompressedData = CompressionManager.decompress(decryptedData, logger);
-			String msg = new String(decompressedData, StandardCharsets.UTF_8);
-			return new JSONObject(msg);
-		} catch (IOException e) {
-			close();
-			logger.error("IOError while reading packets, killing connection with " + identifier, e);
-			return null;
+		if (initialized) {
+			packetHandler.startHandling();
 		}
 	}
 
-	public void sendData(JSONObject json) {
-		if (!active) {
-			return;
-		}
-		synchronized (output) {
-			String jsonString = json.toString();
-			try {
-				byte[] data = jsonString.getBytes(StandardCharsets.UTF_8);
-				byte[] compressed = CompressionManager.compress(data);
-				VarInt.writeVarInt(output, compressed.length, encrypter);
-				byte[] encrypted = encrypter.encrypt(compressed);
-				output.write(encrypted);
-			} catch (IOException e) {
-				close();
-				logger.error("Failed to send json reply to " + identifier, e);
-			}
-		}
-	}
-
-	public void sendData(AbstractJsonPacket packet) {
-		sendData(packet.getMessage());
+	public void sendData(IPacket packet) {
+		outgoingDataHandler.queuePacket(packet);
 	}
 
 	public void close() {
 		active = false;
 		logger.info("Closing connection with " + identifier);
 		try {
+			if (packetHandler != null) {
+				packetHandler.stopHandling();
+			}
+			if (outgoingDataHandler != null) {
+				outgoingDataHandler.stop();
+			}
 			socket.close();
 		} catch (IOException e) {
 			// fine
@@ -148,16 +121,16 @@ public class ClientConnection implements Runnable {
 			output.write(confirmationkey);
 			int encryptedSecretLength = VarInt.readVarInt(input);
 			if (encryptedSecretLength > 128) {
-				logger.error("Encrypted secret had wrong length, expected 128, but got " + encryptedSecretLength + " from "
-						+ identifier);
+				logger.error("Encrypted secret had wrong length, expected 128, but got " + encryptedSecretLength
+						+ " from " + identifier);
 				return false;
 			}
 			sharedSecret = new byte[encryptedSecretLength];
 			input.readFully(sharedSecret);
 			int encryptedConfKeyLength = VarInt.readVarInt(input);
 			if (encryptedConfKeyLength != 128) {
-				logger.error("Encrypted confirmation key had wrong length, expected 128, but got " + encryptedConfKeyLength
-						+ " from " + identifier);
+				logger.error("Encrypted confirmation key had wrong length, expected 128, but got "
+						+ encryptedConfKeyLength + " from " + identifier);
 				return false;
 			}
 			receivedConfirmationKey = new byte[encryptedConfKeyLength];
@@ -179,8 +152,7 @@ public class ClientConnection implements Runnable {
 		return true;
 	}
 
-	private boolean authPlayer() {
-		JSONObject playerInfo = readPacket();
+	public boolean authPlayer(JSONObject playerInfo) {
 		String name = playerInfo.getString("name");
 		identifier = name;
 		String uuid = playerInfo.getString("uuid");
@@ -205,19 +177,30 @@ public class ClientConnection implements Runnable {
 		String mojangUUID = playerInfoMojangJson.getString("id");
 		String mojangName = playerInfoMojangJson.getString("name");
 		if (!mojangUUID.equals(uuid)) {
-			logger.error("Failed to auth uuid, " + identifier + " submitted " + uuid + ", but mojang said " + mojangUUID);
+			logger.error("Failed to auth uuid, " + identifier + " submitted " + uuid + ", but mojang said "
+					+ mojangUUID);
 			return false;
 		}
 		if (!mojangName.equals(name)) {
-			logger
-					.error("Failed to auth user name, " + identifier + " submitted " + name + ", but mojang said " + mojangName);
+			logger.error("Failed to auth user name, " + identifier + " submitted " + name + ", but mojang said "
+					+ mojangName);
 			return false;
 		}
 		if (!Main.getAuthorizedUserManagement().isAuthorized(uuid)) {
-			logger.error("User with uuid " + uuid + " and name " + name + " tried to login, but was not an authorized user");
+			logger.error("User with uuid " + uuid + " and name " + name
+					+ " tried to login, but was not an authorized user");
 			return false;
 		}
 		logger.info("Successfuly authenticated " + identifier + " with uuid " + uuid);
+		initialized = true;
 		return true;
+	}
+
+	public MapDataSyncSession getMapDataSyncSession() {
+		return mapSyncSession;
+	}
+
+	public void resetMapDataSync(int id) {
+		mapSyncSession = new MapDataSyncSession(this, id);
 	}
 }
