@@ -1,5 +1,6 @@
 package com.github.maxopoly.WPServer;
 
+import com.github.maxopoly.WPCommon.util.WPStatics;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -16,9 +17,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.logging.log4j.Logger;
 
 public class ServerManager {
-
-	private static final int port = 23452;
-	private static final int testingPort = 23453;
 
 	private List<ClientConnection> activeConnections;
 	private Logger logger;
@@ -39,7 +37,7 @@ public class ServerManager {
 	@SuppressWarnings("resource")
 	// it's fine that we never close the server socket, it's supposed to run until the application exits
 	public void startServer() {
-		int port = testingPort;
+		int port = WPStatics.testPort;
 		logger.info("Starting server on port " + port);
 		ServerSocket server;
 		try {

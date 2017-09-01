@@ -1,7 +1,9 @@
 package com.github.maxopoly.WPServer.command.commands;
 
+import com.github.maxopoly.WPServer.ClientConnection;
 import com.github.maxopoly.WPServer.Main;
 import com.github.maxopoly.WPServer.command.Command;
+import com.github.maxopoly.WPServer.packetCreation.InvalidateAllPlayerInfoPacket;
 
 public class ReloadCommand extends Command {
 
@@ -12,6 +14,10 @@ public class ReloadCommand extends Command {
 	@Override
 	public void execute(String[] args) {
 		Main.reloadFromDB();
+		InvalidateAllPlayerInfoPacket packet = new InvalidateAllPlayerInfoPacket();
+		for (ClientConnection conn : Main.getServerManager().getActiveConnections()) {
+			conn.sendData(packet);
+		}
 	}
 
 	@Override

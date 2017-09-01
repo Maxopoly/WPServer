@@ -4,9 +4,11 @@ import com.github.maxopoly.WPServer.command.CommandLineReader;
 import com.github.maxopoly.WPServer.database.AltDAO;
 import com.github.maxopoly.WPServer.database.AuthDAO;
 import com.github.maxopoly.WPServer.database.DBConnection;
+import com.github.maxopoly.WPServer.database.WayPointDAO;
 import com.github.maxopoly.WPServer.model.AuthorizedUserManagement;
 import com.github.maxopoly.WPServer.model.ChestManagement;
 import com.github.maxopoly.WPServer.model.PlayerInfoManagement;
+import com.github.maxopoly.WPServer.model.WayPointManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,6 +18,7 @@ public class Main {
 	private static Logger logger;
 	private static ServerManager serverManager;
 	private static AuthorizedUserManagement userManagement;
+	private static WayPointManager wayPointManager;
 	private static DBConnection dbConnection;
 
 	public static void main(String[] args) {
@@ -45,6 +48,8 @@ public class Main {
 		accountCache = new PlayerInfoManagement(altDao);
 		AuthDAO authDao = new AuthDAO(dbConnection, logger);
 		userManagement = new AuthorizedUserManagement(authDao);
+		WayPointDAO wayPointDao = new WayPointDAO(dbConnection, logger);
+		wayPointManager = new WayPointManager(wayPointDao);
 	}
 
 	private static void startCmdReading() {
@@ -67,6 +72,10 @@ public class Main {
 
 	public static ServerManager getServerManager() {
 		return serverManager;
+	}
+
+	public static WayPointManager getWayPointManager() {
+		return wayPointManager;
 	}
 
 	public static AuthorizedUserManagement getAuthorizedUserManagement() {
