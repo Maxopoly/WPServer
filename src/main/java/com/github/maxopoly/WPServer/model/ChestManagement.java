@@ -59,6 +59,13 @@ public class ChestManagement {
 		dirty = false;
 	}
 
+	public synchronized void deleteChest(Location loc) {
+		Chest c = chests.remove(loc);
+		if (c != null) {
+			c.clear();
+		}
+	}
+
 	public synchronized void updateContent(Chest chest) {
 		dirty = true;
 		Chest preExisting = chests.get(chest.getLocation());

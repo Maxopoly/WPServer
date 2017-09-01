@@ -6,6 +6,7 @@ import com.github.maxopoly.WPCommon.packetHandling.incoming.IncomingDataHandler;
 import com.github.maxopoly.WPCommon.packetHandling.incoming.JSONPacketForwarder;
 import com.github.maxopoly.WPCommon.util.AES_CFB8_Encrypter;
 import com.github.maxopoly.WPServer.packetHandling.ChestContentPacketHandler;
+import com.github.maxopoly.WPServer.packetHandling.ChestDeletionPacketHandler;
 import com.github.maxopoly.WPServer.packetHandling.InitAuthPacketHandler;
 import com.github.maxopoly.WPServer.packetHandling.ItemLocationRequestPacketHandler;
 import com.github.maxopoly.WPServer.packetHandling.MapDataSyncInitPacketHandler;
@@ -29,6 +30,7 @@ public class ServerSidePacketHandler extends IncomingDataHandler {
 		jsonHandler.registerHandler(new MapDataSyncInitPacketHandler(conn));
 		jsonHandler.registerHandler(new InitAuthPacketHandler(conn));
 		jsonHandler.registerHandler(new ServerSideMapDataCompletePacketHandler(conn));
+		jsonHandler.registerHandler(new ChestDeletionPacketHandler());
 		BinaryDataForwarder binaryHandler = new BinaryDataForwarder(logger);
 		binaryHandler.registerHandler(new ServerSideMapDataPacketHandler(conn));
 		registerHandler(binaryHandler);
