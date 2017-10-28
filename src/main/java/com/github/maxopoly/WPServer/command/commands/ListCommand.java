@@ -19,11 +19,12 @@ public class ListCommand extends Command {
 			return;
 		}
 		StringBuilder sb = new StringBuilder();
-		sb.append("A total of " + activeConns.size() + " players is connected: ");
+		sb.append("A total of " + activeConns.size() + " players are connected: ");
 		for (ClientConnection conn : activeConns) {
 			sb.append(conn.getIdentifier());
 			sb.append("   ");
 		}
+		Main.getLogger().info(sb.toString());
 	}
 
 	@Override

@@ -5,6 +5,7 @@ import com.github.maxopoly.WPCommon.packetHandling.incoming.JSONPacketHandler;
 import com.github.maxopoly.WPServer.ClientConnection;
 import com.github.maxopoly.WPServer.Main;
 import com.github.maxopoly.WPServer.packetCreation.LoginSuccessPackage;
+import com.github.maxopoly.WPServer.packetCreation.PermissionUpdatePacket;
 import com.github.maxopoly.WPServer.packetCreation.WayPointPacket;
 import org.json.JSONObject;
 
@@ -28,7 +29,8 @@ public class InitAuthPacketHandler implements JSONPacketHandler {
 		} else {
 			Main.getLogger().info("Successfully established connection with " + conn.getIdentifier());
 			conn.sendData(new LoginSuccessPackage());
-			conn.sendData(new WayPointPacket(Main.getWayPointManager().getAllPoints()));
+			conn.sendData(new WayPointPacket(conn.getPermissionLevel(), Main.getWayPointManager().getAllPoints()));
+			conn.sendData(new PermissionUpdatePacket(conn.getPermissionLevel()));
 		}
 	}
 }

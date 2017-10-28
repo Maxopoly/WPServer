@@ -31,13 +31,13 @@ public class ServerManager {
 		activeConnections = new LinkedList<ClientConnection>();
 		genServerKeys();
 		ScheduledExecutorService exec = Executors.newScheduledThreadPool(1);
-		exec.scheduleAtFixedRate(new LocationSendingRunnable(), 1, 500, TimeUnit.MILLISECONDS);
+		exec.scheduleAtFixedRate(new LocationSendingRunnable(), 500, 500, TimeUnit.MILLISECONDS);
 	}
 
 	@SuppressWarnings("resource")
 	// it's fine that we never close the server socket, it's supposed to run until the application exits
 	public void startServer() {
-		int port = WPStatics.testPort;
+		int port = WPStatics.port;
 		logger.info("Starting server on port " + port);
 		ServerSocket server;
 		try {
@@ -48,7 +48,7 @@ public class ServerManager {
 			return;
 		}
 		while (true) {
-			// infinite loop to accept conditions
+			// infinite loop to accept connections
 			try {
 				Socket client = server.accept();
 				ClientConnection conn = new ClientConnection(client, logger, keyPair);

@@ -1,6 +1,7 @@
 package com.github.maxopoly.WPServer;
 
 import com.github.maxopoly.WPCommon.model.LocationTracker;
+import com.github.maxopoly.WPCommon.model.permission.PermissionLevelManagement;
 import com.github.maxopoly.WPCommon.packetHandling.incoming.BinaryDataForwarder;
 import com.github.maxopoly.WPCommon.packetHandling.incoming.IncomingDataHandler;
 import com.github.maxopoly.WPCommon.packetHandling.incoming.JSONPacketForwarder;
@@ -21,7 +22,8 @@ public class ServerSidePacketHandler extends IncomingDataHandler {
 
 	public ServerSidePacketHandler(Logger logger, DataInputStream input, AES_CFB8_Encrypter encrypter,
 			Runnable failureCallback, ClientConnection conn) {
-		super(logger, input, encrypter, failureCallback);
+		// init at default perm level
+		super(logger, input, encrypter, failureCallback, PermissionLevelManagement.getPermissionLevel(4));
 		JSONPacketForwarder jsonHandler = new JSONPacketForwarder(logger);
 		jsonHandler.registerHandler(new RequestPlayerInfoPacketHandler(conn));
 		jsonHandler.registerHandler(new ChestContentPacketHandler());

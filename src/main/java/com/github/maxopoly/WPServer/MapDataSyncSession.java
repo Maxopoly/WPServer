@@ -8,6 +8,7 @@ import com.github.maxopoly.WPCommon.util.MapDataFileHandler;
 import com.github.maxopoly.WPServer.packetCreation.MapDataRequestPacket;
 import java.io.File;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -41,7 +42,9 @@ public class MapDataSyncSession extends MapDataFileHandler {
 					|| (cachedTile.getTimeStamp() < tile.getTimeStamp() && cachedTile.getHash() != tile.getHash())) {
 				toRequest.add(tile);
 			} else {
-				unchangedTiles.add(tile.getCoords());
+				if (cachedTile.getHash() == tile.getHash()) {
+					unchangedTiles.add(tile.getCoords());
+				}
 				replyCount--;
 			}
 		}
@@ -68,7 +71,9 @@ public class MapDataSyncSession extends MapDataFileHandler {
 		for (CoordPair pair : unchangedTiles) {
 			toSendBack.remove(new WPMappingTile(pair));
 		}
-		for (WPMappingTile tile : receivedTiles) {
+		Iterator<WPMappingTile> iter = receivedTiles.iterator();
+		while (iter.hasNext()) {
+			WPMappingTile tile = iter.next();
 			WPMappingTile cachedTile;
 			synchronized (cachedTiles) {
 				cachedTile = cachedTiles.get(tile.getCoords());
@@ -77,6 +82,8 @@ public class MapDataSyncSession extends MapDataFileHandler {
 							.getZ(), tile.getHash());
 					cachedTiles.put(cachedTile.getCoords(), cachedTile);
 					saveTile(tile);
+					iter.remove();
+					System.gc();
 					continue;
 				}
 			}
@@ -89,6 +96,8 @@ public class MapDataSyncSession extends MapDataFileHandler {
 					cachedTile.updateTimeStampAndHash(mergedData.getTimeStamp(), mergedData.getHash());
 				}
 			}
+			iter.remove();
+			System.gc();
 		}
 		for (WPMappingTile tile : toSendBack) {
 			if (tile.getDataDump() == null) {
@@ -100,6 +109,7 @@ public class MapDataSyncSession extends MapDataFileHandler {
 			if (conn.isActive()) {
 				conn.sendData(new MapDataPacket(tile, sessionId));
 			}
+			System.gc();
 		}
 		conn.sendData(new MapDataCompletionPacket(sessionId));
 		Main.getLogger().info(

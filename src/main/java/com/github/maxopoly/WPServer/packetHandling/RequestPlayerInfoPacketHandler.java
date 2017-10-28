@@ -21,7 +21,7 @@ public class RequestPlayerInfoPacketHandler implements JSONPacketHandler {
 		String name = msg.getString("name");
 		Player player = Main.getPlayerInfoManagement().getPlayer(name);
 		if (player != null) {
-			connection.sendData(new PlayerInfoPacket(player));
+			connection.sendData(new PlayerInfoPacket(name, player, connection.getPermissionLevel()));
 		}
 	}
 

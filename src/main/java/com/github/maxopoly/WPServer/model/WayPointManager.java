@@ -18,7 +18,7 @@ public class WayPointManager {
 		points = dao.loadAll();
 		if (Main.getServerManager() != null) {
 			for (ClientConnection conn : Main.getServerManager().getActiveConnections()) {
-				conn.sendData(new WayPointPacket(getAllPoints()));
+				conn.sendData(new WayPointPacket(conn.getPermissionLevel(), getAllPoints()));
 			}
 		}
 	}

@@ -63,6 +63,7 @@ public class ChestManagement {
 		Chest c = chests.remove(loc);
 		if (c != null) {
 			c.clear();
+			dirty = true;
 		}
 	}
 

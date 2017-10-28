@@ -14,9 +14,11 @@ public class LocationSendingRunnable implements Runnable {
 		if (pendingUpdates.size() == 0) {
 			return;
 		}
-		PlayerLocationUpdate updatePacket = new PlayerLocationUpdate(pendingUpdates);
 		for (ClientConnection conn : conns) {
-			conn.sendData(updatePacket);
+			PlayerLocationUpdate updatePacket = new PlayerLocationUpdate(pendingUpdates, conn.getPermissionLevel());
+			if (updatePacket.hasPermissionForContent()) {
+				conn.sendData(updatePacket);
+			}
 		}
 	}
 }

@@ -1,5 +1,7 @@
 package com.github.maxopoly.WPServer;
 
+import com.github.maxopoly.WPCommon.model.permission.PermissionLevel;
+import com.github.maxopoly.WPCommon.model.permission.PermissionLevelManagement;
 import com.github.maxopoly.WPCommon.packetHandling.outgoing.IPacket;
 import com.github.maxopoly.WPCommon.packetHandling.outgoing.OutgoingDataHandler;
 import com.github.maxopoly.WPCommon.util.AES_CFB8_Encrypter;
@@ -31,7 +33,9 @@ public class ClientConnection implements Runnable {
 	private byte[] sharedSecret;
 	private boolean initialized;
 	private String identifier;
+	private PermissionLevel permLevel;
 	private MapDataSyncSession mapSyncSession;
+	private String uuid;
 
 	public ClientConnection(Socket socket, Logger logger, KeyPair keyPair) {
 		logger.info("Connection attempt by " + socket.getInetAddress().getHostAddress());
@@ -69,7 +73,7 @@ public class ClientConnection implements Runnable {
 		};
 		outgoingDataHandler = new OutgoingDataHandler(output, encrypter, closingCallBack);
 		packetHandler = new ServerSidePacketHandler(logger, input, encrypter, closingCallBack, this);
-		initialized = true;
+		packetHandler.updatePermissionLevel(PermissionLevelManagement.getAuthOnlyPermissionLevel());
 	}
 
 	public boolean isActive() {
@@ -85,7 +89,7 @@ public class ClientConnection implements Runnable {
 		if (!initialized) {
 			setup();
 		}
-		if (initialized) {
+		if (active) {
 			packetHandler.startHandling();
 		}
 	}
@@ -156,6 +160,8 @@ public class ClientConnection implements Runnable {
 		String name = playerInfo.getString("name");
 		identifier = name;
 		String uuid = playerInfo.getString("uuid");
+		this.uuid = uuid;
+		this.permLevel = Main.getAuthorizedUserManagement().getPermLevel(uuid);
 		String tag = playerInfo.getString("tag");
 		logger.info(socket.getInetAddress().getHostAddress() + " is trying to auth as " + name + " with tag " + tag);
 		String hash;
@@ -186,12 +192,8 @@ public class ClientConnection implements Runnable {
 					+ mojangName);
 			return false;
 		}
-		if (!Main.getAuthorizedUserManagement().isAuthorized(uuid)) {
-			logger.error("User with uuid " + uuid + " and name " + name
-					+ " tried to login, but was not an authorized user");
-			return false;
-		}
 		logger.info("Successfuly authenticated " + identifier + " with uuid " + uuid);
+		updatePermissionLevel(Main.getAuthorizedUserManagement().getPermLevel(uuid));
 		initialized = true;
 		return true;
 	}
@@ -200,7 +202,20 @@ public class ClientConnection implements Runnable {
 		return mapSyncSession;
 	}
 
+	public PermissionLevel getPermissionLevel() {
+		return permLevel;
+	}
+
+	public void updatePermissionLevel(PermissionLevel permLevel) {
+		this.permLevel = permLevel;
+		packetHandler.updatePermissionLevel(permLevel);
+	}
+
 	public void resetMapDataSync(int id) {
 		mapSyncSession = new MapDataSyncSession(this, id);
+	}
+
+	public String getUUID() {
+		return uuid;
 	}
 }
